@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   microshell.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dracken24 <dracken24@student.42.fr>        +#+  +:+       +#+        */
+/*   By: nadesjar <dracken24@gmail.com>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 21:11:14 by dracken24         #+#    #+#             */
-/*   Updated: 2023/01/05 15:00:55 by dracken24        ###   ########.fr       */
+/*   Updated: 2023/01/06 13:59:59 by nadesjar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv, char **env)
 		printf("NBR CMDS: %d\n", nbr_cmds);
 		while (nbr_cmds > 0 && argv[i])
 		{
-			argv++;
+			// argv++;
 			pid = fork();
 			if (pid == -1)
 			{
