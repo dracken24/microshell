@@ -6,7 +6,7 @@
 /*   By: dracken24 <dracken24@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 21:11:14 by dracken24         #+#    #+#             */
-/*   Updated: 2023/01/04 19:18:39 by dracken24        ###   ########.fr       */
+/*   Updated: 2023/01/05 15:00:55 by dracken24        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 
 int		ft_count_cmds(char **argv)
 {
@@ -22,20 +25,27 @@ int		ft_count_cmds(char **argv)
 
 	while (argv[i])
 	{
-		if ((argv[i][0] == ';' || argv[i][0] == '|') && argv[i])
+		if ((argv[i][0] == ';' || argv[i][0] == '|'))
 			ret++;
 		i++;
 	}
 	return (ret + 1);
 }
 
+int	ft_end_with(int argc, char **argv)
+{
+	if (argv[1][0] == ';' || argv[argc -1][0] == ';'
+		|| argv[1][0] == '|' || argv[argc -1][0] == '|')
+		return (-1);
+	return (0);
+}
 
 int main(int argc, char **argv, char **env)
 {
-	(void)env;
+	// (void)env;
 	int		nbr_cmds = 0;
 	int     i = 1;
-	int		k = 1;
+	// int		k = 1;
 	// int     fd[2];
 	pid_t   pid;
 	
@@ -45,36 +55,31 @@ int main(int argc, char **argv, char **env)
 		printf("NBR CMDS: %d\n", nbr_cmds);
 		while (nbr_cmds > 0 && argv[i])
 		{
-			while (argv[i] && (argv[i][0] != ';' && argv[i][0] != '|'))
+			argv++;
+			pid = fork();
+			if (pid == -1)
 			{
-				i++;
+				write(2, "Error, pid -1", 14);
+				exit(0);
 			}
-			if (argv[i] && argv[i][0] == ';')
+			if (pid == 0)
 			{
-				// argv[i] == NULL;
-				// printf("SEMICOLUM\n");
+				// argv[0] = NULL;
+				// printf("exec\n");
+				if (execve(argv[1], &argv[1], env) == -1)
+				{
+					printf("EXECBAD\n");
+					exit(1);
+				}
+				// printf("exec2\n");
 			}
-			else if (argv[i] && argv[i][0] == '|')
+			if (waitpid(pid, NULL, 0) == -1)
 			{
-				// printf("PIPE\n");
-				argv[i] == NULL;
-				pid = fork();
-				if (pid = -1)
-				{
-					write(2, "Error, pid -1", 14);
-					exit(0);
-				}
-				else if (pid = 0)
-				{
-					
-					
-				}
-				if (waitpid(pid, NULL, 0) == -1)
-				{
-					write(2, "Error, waitpid", 15);
-					exit(0);
-				}
+				write(2, "Error, waitpid\n", 15);
+				exit(0);
 			}
+			printf("GOOD\n");
+			// }
 			i++;
 			nbr_cmds--;
 		}
