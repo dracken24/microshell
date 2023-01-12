@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   microshell.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nadesjar <dracken24@gmail.com>             +#+  +:+       +#+        */
+/*   By: dracken24 <dracken24@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 21:11:14 by dracken24         #+#    #+#             */
-/*   Updated: 2023/01/10 17:08:42 by nadesjar         ###   ########.fr       */
+/*   Updated: 2023/01/12 15:31:09 by dracken24        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,20 +44,36 @@ int	ft_end_with_pipe(char **argv, int i)
 
 int main(int argc, char **argv, char **env)
 {
-	// (void)env;
 	int		nbr_cmds = 0;
-	int     i = 1;
+	int     i = 0;
 	int		k = 1;
 	int     fd[2];
+	// int		fdIn;
+	// int		fdOut;
 	pid_t   pid;
 	
 	if (argc > 1)
 	{
+		argv++;
 		nbr_cmds = ft_count_cmds(argv);
 		// printf("NBR CMDS: %d\n", nbr_cmds);
-		while (nbr_cmds > 0 && argv[i])
+		while (nbr_cmds > 0)
 		{
-			// argv++;
+			dprintf(2, "\nNBR CMDS: %d\n\n", nbr_cmds);
+			k = ft_end_with_pipe(argv, i);
+			
+			if (k > 0)
+				argv[k] = NULL;
+				
+			for (int x = i; argv[x]; x++)
+				dprintf(2, "line: %s\n", argv[x]);
+			dprintf(2, "\n");
+			
+			if (pipe(fd) < 0)
+			{
+				printf("BAD PIPE\n");
+				exit(-1);
+			}
 			pid = fork();
 			if (pid == -1)
 			{
@@ -66,46 +82,31 @@ int main(int argc, char **argv, char **env)
 			}
 			if (pid == 0)
 			{
-				k = ft_end_with_pipe(argv, i);
-				printf("K: %d\n", k);
 				if ( k > 0)
 				{
-					k += i;
-					printf("K: %d\n", k);
-					// i = k;
-					argv[k] = NULL;
-
-					if (pipe(fd) < 0)
-					{
-						printf("BAD PIPE\n");
-						exit(-1);
-					}
-					dup2(fd[1], 0);
 					close(fd[0]);
-					
+					dup2(fd[1], STDOUT_FILENO);
 				}
 				if (execve(argv[i], &argv[i], env) == -1)
 				{
-					// printf("EXECBAD\n");
+					printf("EXECBAD\n");
 					exit(1);
 				}
-				i = k + 1;
-				// printf("exec2\n");
 			}
+			if (k > 0)
+			{
+				close(fd[1]);
+				dup2(fd[0], STDIN_FILENO);
+			}
+
 			if (waitpid(pid, NULL, 0) == -1)
 			{
 				write(2, "Error, waitpid\n", 15);
 				exit(0);
 			}
-			if (ft_end_with_pipe(argv, i) > 0)
-			{
-				dup2(fd[0], 1);
-				close(fd[1]);
-			}
-			// printf("GOOD\n");
-			// }
-			// while ()
-			i++;
+			printf("\n");
+			i += k + 1;
+			dprintf(2, "*---------------------------------------------------*\n");
 			nbr_cmds--;
 		}
 	}
@@ -113,3 +114,5 @@ int main(int argc, char **argv, char **env)
 		printf("NO CMDS\n");
 	return (0);
 }
+
+// ./a.out /bin/cat infile "|" /usr/bin/grep do  
