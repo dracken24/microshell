@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   microshell.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nadesjar <dracken24@gmail.com>             +#+  +:+       +#+        */
+/*   By: dracken24 <dracken24@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 21:11:14 by dracken24         #+#    #+#             */
-/*   Updated: 2023/01/13 13:55:31 by nadesjar         ###   ########.fr       */
+/*   Updated: 2023/01/13 16:08:20 by dracken24        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -173,5 +173,5 @@ int main(int argc, char **argv, char **env)
 		putStr("NO CMDS\n", 2, 0);
 	return (0);
 }
-
+// https://www.nchsoftware.com/picopdf/index.html?kw=open%20source%20pdf%20editor
 // ./a.out /bin/cat infile "|" /usr/bin/grep do ";" /bin/cat infile "|" /usr/bin/grep si "|" /usr/bin/grep vas
