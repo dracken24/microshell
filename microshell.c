@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   microshell.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dracken24 <dracken24@student.42.fr>        +#+  +:+       +#+        */
+/*   By: nadesjar <dracken24@gmail.com>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 21:11:14 by dracken24         #+#    #+#             */
-/*   Updated: 2023/01/12 15:31:09 by dracken24        ###   ########.fr       */
+/*   Updated: 2023/01/13 13:55:31 by nadesjar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,19 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+void	putStr(char *str, int fd, int out)
+{
+	int i = 0;
+	
+	while (str[i])
+	{
+		write(fd, &str[i], 1);
+		i++;
+	}
+	if (out == 1)
+		exit (-1);
+}
 
 int ft_count_cmds(char **argv)
 {
@@ -33,53 +46,102 @@ int ft_count_cmds(char **argv)
 
 int	ft_end_with_pipe(char **argv, int i)
 {
-	while (argv[i] && argv[i][0] != '|')
+	int ret = 0;
+	int save = i;
+
+	while (argv[save] && argv[save][0] != '|')
 	{
-		i++;
+		save++;
+		ret++;
+		if (argv[save] && argv[save][0] == ';')
+			return (0);
 	}
-	if (argv[i] && argv[i][0] == '|')
-		return (i);
+	if (argv[save] && argv[save][0] == '|')
+		return (ret);
 	return (0);
+}
+
+int ft_end_with_semicollon(char **argv, int i)
+{
+	int ret = 0;
+	int save = i;
+
+	while (argv[save] && argv[save][0] != ';')
+	{
+		save++;
+		ret++;
+		if (argv[save] && (argv[save][0] == '|' || argv[save][0] == ';'))
+		{
+			if (argv[save + 1] && (argv[save + 1][0] == ';' || argv[save + 1][0] == '|'))
+			{
+				putStr("syntax error near unexpected token\n", 2, 1);
+				exit (-1);
+			}
+			else if (argv[save] && argv[save + 1][0] == '|')
+				return (0);
+		}
+	}
+	if (argv[save] && argv[save][0] == ';')
+		return (ret);
+	return (0);
+}
+
+void	ft_cd(char **argv, int i)
+{
+	if (ft_end_with_pipe(argv, i) || ft_end_with_semicollon(argv, i))
+		putStr("error: cd: bad arguments\n", 2, 1);
+	else if (argv[i + 1])
+	{
+		putStr("error: cd: cannot change directory to ", 2, 0);
+		putStr(argv[i], 2, 0);
+		putStr("\n", 2, 1);
+	}
+	chdir(argv[i]);
 }
 
 int main(int argc, char **argv, char **env)
 {
 	int		nbr_cmds = 0;
+	int		lastK = 0;
 	int     i = 0;
-	int		k = 1;
+	int		k = 1; // pipe
+	int		g = 0; // semicollon
 	int     fd[2];
-	// int		fdIn;
-	// int		fdOut;
+
 	pid_t   pid;
 	
 	if (argc > 1)
 	{
 		argv++;
 		nbr_cmds = ft_count_cmds(argv);
-		// printf("NBR CMDS: %d\n", nbr_cmds);
+
+		if (strncmp(argv[1], "cd", 2) == 0)
+			ft_cd(argv, 1);
 		while (nbr_cmds > 0)
 		{
-			dprintf(2, "\nNBR CMDS: %d\n\n", nbr_cmds);
 			k = ft_end_with_pipe(argv, i);
-			
+
+			if (k == 0)
+				g = ft_end_with_semicollon(argv, i);
 			if (k > 0)
+			{
+				k += lastK;
 				argv[k] = NULL;
-				
-			for (int x = i; argv[x]; x++)
-				dprintf(2, "line: %s\n", argv[x]);
-			dprintf(2, "\n");
+				k -= lastK;
+			}
+			else if(g > 0)
+			{
+				g += lastK;
+				argv[g] = NULL;
+				g -= lastK;
+			}
 			
 			if (pipe(fd) < 0)
-			{
-				printf("BAD PIPE\n");
-				exit(-1);
-			}
+				putStr("BAD PIPE\n", 2, 1);
+				
 			pid = fork();
 			if (pid == -1)
-			{
-				write(2, "Error, pid -1", 14);
-				exit(0);
-			}
+				putStr("Error, pid -1\n", 2, 1);
 			if (pid == 0)
 			{
 				if ( k > 0)
@@ -88,10 +150,7 @@ int main(int argc, char **argv, char **env)
 					dup2(fd[1], STDOUT_FILENO);
 				}
 				if (execve(argv[i], &argv[i], env) == -1)
-				{
-					printf("EXECBAD\n");
-					exit(1);
-				}
+					putStr("EXECBAD\n", 2, 1);
 			}
 			if (k > 0)
 			{
@@ -100,19 +159,19 @@ int main(int argc, char **argv, char **env)
 			}
 
 			if (waitpid(pid, NULL, 0) == -1)
-			{
-				write(2, "Error, waitpid\n", 15);
-				exit(0);
-			}
-			printf("\n");
-			i += k + 1;
-			dprintf(2, "*---------------------------------------------------*\n");
+				putStr("Error, waitpid\n", 2, 1);
+
+			if (k > 0)
+				i += k + 1;
+			else
+				i += g + 1;
+			lastK = i;
 			nbr_cmds--;
 		}
 	}
 	else
-		printf("NO CMDS\n");
+		putStr("NO CMDS\n", 2, 0);
 	return (0);
 }
 
-// ./a.out /bin/cat infile "|" /usr/bin/grep do  
+// ./a.out /bin/cat infile "|" /usr/bin/grep do ";" /bin/cat infile "|" /usr/bin/grep si "|" /usr/bin/grep vas
