@@ -6,7 +6,7 @@
 /*   By: dracken24 <dracken24@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/03 21:11:14 by dracken24         #+#    #+#             */
-/*   Updated: 2023/01/14 20:54:17 by dracken24        ###   ########.fr       */
+/*   Updated: 2023/01/15 00:46:51 by dracken24        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv, char **env)
 	int 	i = 0;
 	int 	fd[2];
 	int		nbrCmds;
-	pid_t	pid;
+	pid_t	pid; 
 	
 	if (argc > 1)
 	{
@@ -156,8 +156,8 @@ int main(int argc, char **argv, char **env)
 				process(argv, env, i, fd, pid, endWP);
 			}
 			
-			// close(fd[0]);
-			// close(fd[1]);
+			close(fd[0]);
+			close(fd[1]);
 			i += endWP + endWSC + 1;
 			nbrCmds--;
 			endWP = 0;
