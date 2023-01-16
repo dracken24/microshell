@@ -5,19 +5,19 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-// void	printCMDS(char **argv, int i , int endWP, int endWSC, int nbrCMDS)
-// {
-// 	dprintf(2, "\n----------------------------------------\n");
-// 	dprintf(2, "----------------------------------------\n");
-// 	for (int k = i; argv[k]; k++)
-// 		dprintf(2, "%s\n", argv[k]);
-// 	dprintf(2, "\n");
-// 	dprintf(2, "NbrCMDS: %d\n", nbrCMDS);
-// 	dprintf(2, "i: %d\n", i);
-// 	dprintf(2, "endWP: %d\n", endWP);
-// 	dprintf(2, "endWSC: %d\n", endWSC);
-// 	dprintf(2, "---------   -------   -------   --------\n");
-// }
+void	printCMDS(char **argv, int i , int endWP, int endWSC, int nbrCMDS)
+{
+	dprintf(2, "\n----------------------------------------\n");
+	dprintf(2, "----------------------------------------\n");
+	for (int k = i; argv[k]; k++)
+		dprintf(2, "%s\n", argv[k]);
+	dprintf(2, "\n");
+	dprintf(2, "NbrCMDS: %d\n", nbrCMDS);
+	dprintf(2, "i: %d\n", i);
+	dprintf(2, "endWP: %d\n", endWP);
+	dprintf(2, "endWSC: %d\n", endWSC);
+	dprintf(2, "---------   -------   -------   --------\n");
+}
 
 int nbrOfCmds(char **argv)
 {
@@ -98,7 +98,7 @@ void cd(char *path)
 
 int main(int argc, char **argv, char **env)
 {
-	int ct = 1;
+	// int ct = 1;
 	int endWP = 0;
 	int endWSC = 0;
 	int i = 0;
@@ -127,13 +127,15 @@ int main(int argc, char **argv, char **env)
 					argv[endWP + i] = NULL;
 				else if (endWSC)
 					argv[endWSC + i] = NULL;
-				// printCMDS(argv, i, endWP, endWSC, nbrCmds);
-				if (strncmp(argv[0], "cd\0", 3) == 0 && ct == 1)
+				printCMDS(argv, i, endWP, endWSC, nbrCmds);
+				// if (strncmp(argv[0], "cd\0", 3) == 0 && ct == 1)
+				if (strncmp(argv[i], "cd\0", 3) == 0)
 				{
-					if ((argv[2] && argv[2][0] != ';') || !argv[1])
+					if ((argv[i + 1] && argv[i + 1][0] == ';')
+						|| (argv[i + 2] && argv[i + 2][0] != ';') || !argv[i + 1])
 						putStr("error: cd: bad arguments\n", 2, 1);
-					cd(argv[1]);
-					ct = 0;
+					cd(argv[i + 1]);
+					// ct = 0;
 				}
 				else
 				{
