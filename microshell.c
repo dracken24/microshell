@@ -1,162 +1,149 @@
-#include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <sys/types.h>
+#include <sys/param.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 
-void	printCMDS(char **argv, int i , int endWP, int endWSC, int nbrCMDS)
+int countMDS(char **argv)
 {
-	dprintf(2, "\n----------------------------------------\n");
-	dprintf(2, "----------------------------------------\n");
-	for (int k = i; argv[k]; k++)
-		dprintf(2, "%s\n", argv[k]);
-	dprintf(2, "\n");
-	dprintf(2, "NbrCMDS: %d\n", nbrCMDS);
-	dprintf(2, "i: %d\n", i);
-	dprintf(2, "endWP: %d\n", endWP);
-	dprintf(2, "endWSC: %d\n", endWSC);
-	dprintf(2, "---------   -------   -------   --------\n");
-}
-
-int nbrOfCmds(char **argv)
-{
-	int i = -1;
 	int ret = 0;
 
-	while (argv[++i])
+	for (int i = 0; argv[i]; i++)
 	{
 		if (argv[i][0] == '|' || argv[i][0] == ';')
 			ret++;
 	}
+
 	return (ret + 1);
 }
 
-void putStr(char *str, int fd, int quit)
+int endWith(char **argv, int i, char good, char bad)
 {
-	int i = -1;
+	int k = 0;
 
-	while (str[++i] != '\0')
-		write(fd, &str[i], 1);
-	if (quit == 1)
-		exit(-1);
-}
-
-int endWith(char **argv, int i, char good, int bad)
-{
-	int k = i;
-
-	while (argv[k])
+	for (; argv[i]; i++)
 	{
-		if (argv[k][0] == good)
-			return (k - i);
-		else if (argv[k][0] == bad)
+		if (argv[i][0] == good)
+			return (k);
+		else if (argv[i][0] == bad)
 			return (0);
 		k++;
 	}
+
 	return (0);
 }
 
-int process(char **argv, char **env, int i, int *fd, pid_t pid, int endWP)
+void    putStr(char *str, int fd, int quit)
 {
-	if (pid == 0)
-	{
-		if (endWP)
-		{
-			close(fd[0]);
-			dup2(fd[1], STDOUT_FILENO);
-		}
-		if (execve(argv[i], &argv[i], env) < 0)
-		{
-			putStr("error: cannot execute ", 2, 0);
-			putStr(argv[i], 2, 0);
-			putStr("\n", 2, 1);
-		}
-	}
-	else
-	{
-		if (endWP)
-		{
-			close(fd[1]);
-			dup2(fd[0], STDIN_FILENO);
-		}
-		if (waitpid(pid, NULL, 0) == -1)
-			putStr("error: fatal\n", 2, 1);
-	}
-	return (0);
+	for (int i = 0; str[i]; i++)
+		write(fd, &str[i], 1);
+	if (quit != 0)
+		exit(quit);
 }
 
-void cd(char *path)
+void    cd(char *path)
 {
 	if (chdir(path) == -1)
 	{
 		putStr("error: cd: cannot change directory to ", 2, 0);
 		putStr(path, 2, 0);
-		putStr("\n", 2, 1);
+		putStr("\n", 2, 0);
 	}
+}
+
+// void	print_cmds(char **argv, int i, int endWp, int endWsc, int nbr_cmds)
+// {
+// 	printf("--------------------------------------------------------\n");
+// 	printf("I: %d\n\n", i);
+// 	for (; argv[i]; i++)
+// 		printf("%s\n", argv[i]);
+// 	printf("\n");
+// 	printf("cmd: %d\n", nbr_cmds);
+// 	printf("EndWp: %d\n", endWp);
+// 	printf("EndWsc: %d\n", endWsc);
+// 	printf("---------   -------------   ------------------   -------\n");
+// }
+
+void	execute(char **argv, char **env, int endWpipe, int i, int pid, int *fd)
+{
+	if (pid == 0)
+	{
+		if (endWpipe > 0)
+		{
+			close(fd[0]);
+			dup2(fd[1], STDOUT_FILENO);
+		}
+		if (execve(argv[i], &argv[i], env))
+		{
+			putStr("error: cannot execute ", 2, 0);
+			putStr(argv[i], 2, 0);
+			putStr("\n", 2, 0);
+		}
+	}
+	else if (endWpipe > 0)
+	{
+		close(fd[1]);
+		dup2(fd[0], STDIN_FILENO);
+	}
+	waitpid(pid, NULL, 0);
+		// putStr("error: fatal\n", 2, -1);
 }
 
 int main(int argc, char **argv, char **env)
 {
-	// int ct = 1;
-	int endWP = 0;
-	int endWSC = 0;
-	int i = 0;
-	int fd[2];
-	int nbrCmds;
-	pid_t pid;
+	int		i = 0;
+	int		ct = 1;
+	int		fd[2];
+	int		endWsc = 0;
+	int		endWpipe = 0;
+	int		nbr_cmds = 0;
+	pid_t	pid;
 
 	if (argc > 1)
 	{
 		argv++;
-		nbrCmds = nbrOfCmds(argv);
-		while (nbrCmds > 0)
+		nbr_cmds = countMDS(argv);
+		for (; nbr_cmds > 0; nbr_cmds--)
 		{
-			if (argv[i] && argv[i][0] == ';')
-			{
+			if(argv[i] && argv[i][0] == ';')
 				i++;
-			}
-			else if (!argv[i])
-				break;
 			else
 			{
-				endWP = endWith(argv, i, '|', ';');
-				if (!endWP)
-					endWSC = endWith(argv, i, ';', '|');
-				if (endWP)
-					argv[endWP + i] = NULL;
-				else if (endWSC)
-					argv[endWSC + i] = NULL;
-				printCMDS(argv, i, endWP, endWSC, nbrCmds);
-				// if (strncmp(argv[0], "cd\0", 3) == 0 && ct == 1)
-				if (strncmp(argv[i], "cd\0", 3) == 0)
+				endWpipe = endWith(argv, i, '|', ';');
+				if (endWpipe == 0)
+					endWsc = endWith(argv, i, ';', '|');
+				if (endWpipe || endWsc)
+					argv[i + endWpipe + endWsc] = NULL;
+				// print_cmds(argv, i, endWpipe, endWsc, nbr_cmds);
+				if (ct == 1 && strncmp(argv[i], "cd", 2) == 0)
 				{
-					if ((argv[i + 1] && argv[i + 1][0] == ';')
-						|| (argv[i + 2] && argv[i + 2][0] != ';') || !argv[i + 1])
-						putStr("error: cd: bad arguments\n", 2, 1);
-					cd(argv[i + 1]);
-					// ct = 0;
-				}
-				else
-				{
-					if (pipe(fd) < 0)
-						putStr("error: fatal\n", 2, 1);
-					if ((pid = fork()) < 0)
-						putStr("error: fatal\n", 2, 1);
-
-					process(argv, env, i, fd, pid, endWP);
+					if (!argv[i + 1] || argv[i + 1][0] == ';')
+						putStr("error: cd: bad arguments\n", 2, 0);
+					else
+						cd(argv[i]);
+					ct = 0;
 				}
 
-				close(fd[0]);
-				close(fd[1]);
-				i += endWP + endWSC + 1;
+				if (pipe(fd) == -1)
+					putStr("error: fatal\n", 2, -1);
+				if ((pid = fork()) == -1)
+					putStr("error: fatal\n", 2, -1);
+
+				execute(argv, env, endWpipe, i, pid, fd);
+
+				if (endWpipe)
+					ct = 0;
+				i += endWpipe + endWsc + 1;
 			}
-			nbrCmds--;
-			endWP = 0;
-			endWSC = 0;
+			if (!argv[i])
+				break ;
+			endWpipe = 0;
+			endWsc = 0;
+			close(fd[0]);
+			close(fd[1]);
 		}
 	}
-	else
-		putStr("no cmds", 1, 0);
+
 	return (0);
 }
